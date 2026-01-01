@@ -1,40 +1,73 @@
 import streamlit as st
+from pymongo import MongoClient
 import pandas as pd
-from supabase import create_client
+from datetime import datetime
 
-# 1. Credenciales verificadas de tu proyecto
-URL = "https://104.21.50.231"
-KEY = "sb_publishable_QCP0k-76xEiT10812eTpeQ_KbqiXwX81"
-supabase = create_client(URL, KEY)
+# 1. CONFIGURACIÓN DE PÁGINA PROFESIONAL
+st.set_page_config(page_title="FIRE PRO", page_icon="🔥", layout="wide")
 
-st.title("🔥 PROYECTO FIRE")
+# 2. CONEXIÓN DIRECTA A TU MONGODB (De tu imagen image_0fa941.jpg)
+# Asegúrate de usar la contraseña que definiste para este usuario
+MONGO_URL = "mongodb+srv://manuelcassinello_db_user:dn57lqnN25ZvE0J5@cluster0.vYgh6s.mongodb.net/?appName=Cluster0"
 
-# 2. Interfaz de Usuario
-tab1, tab2 = st.tabs(["📊 Dashboard", "➕ Registro"])
+@st.cache_resource
+def init_connection():
+    # Establecemos un tiempo de espera de 10 segundos para la conexión inicial
+    return MongoClient(MONGO_URL, serverSelectionTimeoutMS=10000)
 
-with tab2:
-    with st.form("registro", clear_on_submit=True):
-        st.subheader("Añadir Movimiento")
-        concepto = st.text_input("Concepto")
-        monto = st.number_input("Importe (€)", min_value=0.0)
-        feliz = st.toggle("¿Te hace feliz?", value=True)
-        
-        if st.form_submit_button("REGISTRAR"):
+try:
+    client = init_connection()
+    db = client.fuego_db
+    items = db.transacciones
+    # Prueba de conexión rápida
+    client.admin.command('ping')
+except Exception as e:
+    st.error(f"Error de infraestructura: {e}")
+
+st.title("🔥 SISTEMA FUEGO v3.0 (MongoDB Edition)")
+
+# 3. INTERFAZ DE REGISTRO
+with st.form("registro", clear_on_submit=True):
+    st.subheader("Registrar Movimiento")
+    col1, col2 = st.columns(2)
+    with col1:
+        concepto = st.text_input("¿En qué se ha ido el dinero?")
+    with col2:
+        monto = st.number_input("Importe (€)", min_value=0.0, step=0.01)
+    
+    if st.form_submit_button("REGISTRAR AHORA"):
+        if concepto and monto > 0:
             try:
-                # Inserción con los nombres de tus columnas
-                supabase.table("transacciones").insert({
-                    "texto_de_descripción": concepto, 
-                    "cantidad": monto, 
-                    "me_hace_feliz": feliz
-                }).execute()
-                st.success(f"Guardado: {concepto}")
+                items.insert_one({
+                    "concepto": concepto,
+                    "importe": monto,
+                    "fecha": datetime.now()
+                })
+                st.success(f"✅ ¡Guardado!: {concepto}")
+                st.balloons()
             except Exception as e:
-                st.error(f"Error de red: {e}. Reintentando...")
+                st.error(f"No se pudo guardar: {e}")
 
-with tab1:
-    if st.button("Actualizar"):
-        try:
-            res = supabase.table("transacciones").select("*").execute()
-            st.dataframe(pd.DataFrame(res.data))
-        except Exception as e:
-            st.error("No se pudo conectar con la base de datos.")
+# 4. DASHBOARD DE CONTROL
+st.divider()
+st.subheader("📊 Historial de Gastos e Ingresos")
+
+try:
+    # Traemos los datos ordenados por fecha (del más nuevo al más viejo)
+    cursor = items.find().sort("fecha", -1)
+    df = pd.DataFrame(list(cursor))
+    
+    if not df.empty:
+        # Quitamos el ID interno de MongoDB para que la tabla quede limpia
+        df = df.drop(columns=['_id'])
+        
+        # Formateamos la fecha para que sea legible
+        df['fecha'] = pd.to_datetime(df['fecha']).dt.strftime('%d/%m/%Y %H:%M')
+        
+        # Mostramos métricas y tabla
+        st.metric("Total Acumulado", f"{df['importe'].sum():,.2f} €")
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("La base de datos está vacía. Registra tu primer movimiento arriba.")
+except Exception as e:
+    st.info("Esperando los primeros datos...")

@@ -3,7 +3,7 @@ import pandas as pd
 from supabase import create_client
 
 # 1. Credenciales verificadas de tu proyecto
-URL = "https://risdhiqvkbizowtmouk.supabase.co"
+URL = "https://104.21.50.231"
 KEY = "sb_publishable_QCP0k-76xEiT10812eTpeQ_KbqiXwX81"
 supabase = create_client(URL, KEY)
 

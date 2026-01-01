@@ -8,7 +8,7 @@ st.set_page_config(page_title="FIRE PRO", page_icon="🔥", layout="wide")
 
 # 2. CONEXIÓN DIRECTA A TU MONGODB (De tu imagen image_0fa941.jpg)
 # Asegúrate de usar la contraseña que definiste para este usuario
-MONGO_URL = "mongodb+srv://manuelcassinello_db_user:dn57lqnN25ZvE0J5@cluster0.vYgh6s.mongodb.net/?appName=Cluster0"
+MONGO_URL = "mongodb://manuelcassinello_db_user:dn57lqnN25ZvE0J5@cluster0-shard-00-00.vygh6s.mongodb.net:27017,cluster0-shard-00-01.vygh6s.mongodb.net:27017,cluster0-shard-00-02.vygh6s.mongodb.net:27017/fuego_db?ssl=true&replicaSet=atlas-v6z6z1-shard-0&authSource=admin&retryWrites=true&w=majority"
 
 @st.cache_resource
 def init_connection():
